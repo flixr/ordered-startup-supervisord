@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from __future__ import print_function
 import sys
 import os
@@ -166,3 +168,5 @@ def main():
         log.error("ERROR: ", exc_info=sys.exc_info())
 
 
+if __name__ == "__main__":
+    main()
