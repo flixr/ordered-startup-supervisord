@@ -72,6 +72,9 @@ class OrderedStartupOption(object):
         self.startinorder = False
         if parser.has_option(section_name, 'startinorder'):
             self.startinorder = parser.getboolean(section_name, 'startinorder')
+        self.startnext = self.startinorder
+        if parser.has_option(section_name, 'startnext'):
+            self.startnext = parser.getboolean(section_name, 'startnext')
         self.startnextafter = 'RUNNING'
         if parser.has_option(section_name, 'startnextafter'):
             self.startnextafter = parser.get(section_name, 'startnextafter').upper()
@@ -171,8 +174,14 @@ def main():
                         start_next = False
                         break
                     if program.options.startinorder and program.name == pheaders['processname'] and program.options.startnextafter == state:
-                        log.info("Recieved process state of {} from {}, starting next process.".format(state, program.name))
-                        start_next = True
+                        if program.options.startnext:
+                            log.info("Recieved process state of {} from {}, starting next process.".format(state, program.name))
+                            start_next = True
+                        else:
+                            log.info("Recieved process state of {} from {}, with startnext set to false.".format(state, program.name))
+                            log.info("No more processes to start for initial startup, ignoring all future events.")
+                            initial_start = 'FINISHED'
+                            break
                 else:
                     if start_next:
                         log.info("No more processes to start for initial startup, ignoring all future events.")
