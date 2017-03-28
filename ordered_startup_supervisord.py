@@ -83,6 +83,8 @@ class Program(object):
 
     def __init__(self):
         self.name = ""
+        self.group = ""
+        self.procname = ""
         self.priority = 1000
         self.options = None
         """:type : OrderedStartupOption"""
@@ -106,6 +108,7 @@ class StartupPlan(object):
                 option = OrderedStartupOption(parser, section_name)
                 program = Program()
                 program.name = section_name[8:]
+                program.procname = program.name
                 program.options = option
                 if parser.has_option(section_name, 'priority'):
                     program.priority = parser.getint(section_name, 'priority')
@@ -135,6 +138,18 @@ def main():
         startup_plan = StartupPlan(parser)
 
         rpcinterface = childutils.getRPCInterface(os.environ)
+
+        # get group for all processes
+        processes = rpcinterface.supervisor.getAllProcessInfo()
+        for proc in processes:
+            # if group and name differ, process is in a group and startProcess needs "group:name" as arg
+            if proc['name'] != proc['group']:
+                for p in startup_plan.programs:
+                    if p.name == proc['name']:
+                        p.group = proc['group']
+                        p.procname = "{}:{}".format(proc['group'], proc['name'])
+                        break
+
         log.info("programs in order: ")
         for prog in startup_plan.programs:
             log.info(prog.name)
@@ -151,8 +166,8 @@ def main():
                 start_next = False
                 for program in startup_plan.programs:
                     if start_next:
-                        log.info("Starting process: {}".format(program.name))
-                        rpcinterface.supervisor.startProcess(program.name)
+                        log.info("Starting process: {}".format(program.procname))
+                        rpcinterface.supervisor.startProcess(program.procname)
                         start_next = False
                         break
                     if program.options.startinorder and program.name == pheaders['processname'] and program.options.startnextafter == state:
